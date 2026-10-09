@@ -1,1 +1,2404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chrono Core - 5x5 Sci-Fi Strategy Board Game</title>
+  <style>
+/* ==========================================================================
+   Chrono Core - Sci-Fi / Cyberpunk Minimalist Theme
+   ========================================================================== */
 
+:root {
+  --bg-primary: #0a0d14;
+  --bg-secondary: #121824;
+  --bg-tertiary: #1a2233;
+  --border-color: #243049;
+  --border-glow: rgba(56, 189, 248, 0.25);
+
+  /* Player Colors */
+  --p1-blue: #00e5ff;
+  --p1-blue-dim: #007799;
+  --p1-blue-glow: rgba(0, 229, 255, 0.45);
+  --p1-blue-bg: rgba(0, 229, 255, 0.08);
+
+  --p2-red: #ff3366;
+  --p2-red-dim: #991533;
+  --p2-red-glow: rgba(255, 51, 102, 0.45);
+  --p2-red-bg: rgba(255, 51, 102, 0.08);
+
+  /* Core Color */
+  --core-gold: #ffd700;
+  --core-glow: rgba(255, 215, 0, 0.7);
+
+  /* Valid moves */
+  --move-valid: #00ffaa;
+  --move-capture: #ff0055;
+  --move-drop: #ffea00;
+
+  /* Typography */
+  --text-main: #f1f5f9;
+  --text-muted: #8492a6;
+  --font-mono: 'SFMono-Regular', 'JetBrains Mono', Consolas, 'Roboto Mono', monospace;
+  --font-display: 'Rajdhani', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+  font-family: var(--font-display);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(0, 229, 255, 0.08) 0%, transparent 60%),
+    radial-gradient(circle at 50% 100%, rgba(255, 51, 102, 0.08) 0%, transparent 60%),
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 32px 32px, 32px 32px;
+}
+
+/* Header */
+header {
+  padding: 14px 24px;
+  background: rgba(18, 24, 36, 0.85);
+  border-bottom: 1px solid var(--border-color);
+  backdrop-filter: blur(12px);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 10;
+}
+
+.logo-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.game-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #00e5ff 0%, #ffffff 50%, #ff3366 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tagline {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* Buttons */
+.btn {
+  background: var(--bg-tertiary);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  padding: 7px 14px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.btn:hover {
+  background: #232d44;
+  border-color: var(--p1-blue);
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #007799 0%, #00b4d8 100%);
+  border-color: #00e5ff;
+  color: #fff;
+}
+
+.btn-primary:hover {
+  box-shadow: 0 0 15px var(--p1-blue-glow);
+}
+
+/* Main Container */
+.main-wrapper {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 280px 1fr 300px;
+  gap: 20px;
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+@media (max-width: 1100px) {
+  .main-wrapper {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+  }
+}
+
+/* Sidebar Panels */
+.panel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.panel-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Game Status Bar */
+.turn-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  transition: all 0.3s;
+}
+
+.turn-banner.p1-turn {
+  border-color: var(--p1-blue);
+  box-shadow: 0 0 16px var(--p1-blue-bg), inset 0 0 10px var(--p1-blue-bg);
+}
+
+.turn-banner.p2-turn {
+  border-color: var(--p2-red);
+  box-shadow: 0 0 16px var(--p2-red-bg), inset 0 0 10px var(--p2-red-bg);
+}
+
+.turn-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.turn-orb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  transition: all 0.3s;
+}
+
+.p1-turn .turn-orb {
+  background: var(--p1-blue);
+  box-shadow: 0 0 10px var(--p1-blue);
+}
+
+.p2-turn .turn-orb {
+  background: var(--p2-red);
+  box-shadow: 0 0 10px var(--p2-red);
+}
+
+.turn-text {
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.05em;
+}
+
+.round-info {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* Center Play Area */
+.play-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Echo Trays */
+.echo-tray {
+  width: 100%;
+  max-width: 520px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  transition: all 0.3s;
+}
+
+.echo-tray.p2-tray {
+  border-top: 3px solid var(--p2-red);
+}
+
+.echo-tray.p1-tray {
+  border-bottom: 3px solid var(--p1-blue);
+}
+
+.tray-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+}
+
+.tray-label small {
+  font-size: 0.65rem;
+  color: #64748b;
+}
+
+.stock-slots {
+  display: flex;
+  gap: 8px;
+  min-height: 48px;
+  align-items: center;
+}
+
+.stock-card {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.stock-card:hover {
+  transform: translateY(-2px);
+  border-color: #38bdf8;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.stock-card.selected {
+  border-color: var(--move-drop);
+  background: rgba(255, 234, 0, 0.15);
+  box-shadow: 0 0 12px rgba(255, 234, 0, 0.4);
+}
+
+.stock-empty {
+  font-size: 0.75rem;
+  color: #475569;
+  font-style: italic;
+}
+
+/* Board Outer & Container */
+.board-container {
+  position: relative;
+  background: #0d121d;
+  padding: 16px;
+  border-radius: 16px;
+  border: 2px solid var(--border-color);
+  box-shadow: 
+    0 12px 36px rgba(0, 0, 0, 0.6),
+    0 0 40px rgba(0, 229, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+}
+
+.board-goal-indicator {
+  text-align: center;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 4px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.board-goal-indicator.p1-goal {
+  color: var(--p1-blue);
+  border-bottom: 1px dashed rgba(0, 229, 255, 0.3);
+  margin-bottom: 8px;
+}
+
+.board-goal-indicator.p2-goal {
+  color: var(--p2-red);
+  border-top: 1px dashed rgba(255, 51, 102, 0.3);
+  margin-top: 8px;
+}
+
+/* 5x5 Board Grid */
+.board-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 84px);
+  grid-template-rows: repeat(5, 84px);
+  gap: 8px;
+  background: #090d15;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #1c2638;
+}
+
+@media (max-width: 600px) {
+  .board-grid {
+    grid-template-columns: repeat(5, 60px);
+    grid-template-rows: repeat(5, 60px);
+    gap: 6px;
+    padding: 6px;
+  }
+}
+
+/* Cell */
+.cell {
+  position: relative;
+  background: #111726;
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cell:hover {
+  background: #172033;
+  border-color: #334155;
+}
+
+.cell.selected {
+  background: rgba(0, 229, 255, 0.12);
+  border-color: var(--p1-blue);
+  box-shadow: 0 0 14px var(--p1-blue-glow), inset 0 0 8px var(--p1-blue-bg);
+}
+
+.cell.valid-move {
+  background: rgba(0, 255, 170, 0.08);
+  border-color: var(--move-valid);
+}
+
+.cell.valid-move::after {
+  content: '';
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--move-valid);
+  box-shadow: 0 0 10px var(--move-valid);
+  position: absolute;
+  pointer-events: none;
+}
+
+.cell.valid-capture {
+  background: rgba(255, 0, 85, 0.15);
+  border-color: var(--move-capture);
+  animation: pulse-red 1.2s infinite;
+}
+
+.cell.valid-capture::after {
+  content: '';
+  width: 70%;
+  height: 70%;
+  border: 2px dashed var(--move-capture);
+  border-radius: 6px;
+  position: absolute;
+  pointer-events: none;
+}
+
+.cell.valid-drop {
+  background: rgba(255, 234, 0, 0.12);
+  border-color: var(--move-drop);
+}
+
+.cell.valid-drop::after {
+  content: '+';
+  font-size: 1.4rem;
+  color: var(--move-drop);
+  font-weight: bold;
+  position: absolute;
+  pointer-events: none;
+}
+
+@keyframes pulse-red {
+  0%, 100% { box-shadow: 0 0 8px rgba(255, 0, 85, 0.4); }
+  50% { box-shadow: 0 0 18px rgba(255, 0, 85, 0.8); }
+}
+
+.coord-label {
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: #475569;
+  pointer-events: none;
+}
+
+/* Pieces */
+.piece {
+  width: 86%;
+  height: 86%;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+}
+
+.piece.player-1 {
+  background: linear-gradient(135deg, #0e2a47 0%, #153e6b 100%);
+  border: 2px solid var(--p1-blue);
+  color: #e0f2fe;
+}
+
+.piece.player-2 {
+  background: linear-gradient(135deg, #42101e 0%, #68182f 100%);
+  border: 2px solid var(--p2-red);
+  color: #ffe4e6;
+}
+
+.piece-icon {
+  font-size: 1.7rem;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+.piece-name {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Time Echo Styling */
+.piece.is-echo {
+  opacity: 0.85;
+  border-style: dashed;
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(0, 0, 0, 0.2),
+    rgba(0, 0, 0, 0.2) 6px,
+    rgba(255, 255, 255, 0.05) 6px,
+    rgba(255, 255, 255, 0.05) 12px
+  );
+  animation: echo-glitch 2s infinite ease-in-out;
+}
+
+.echo-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #eab308;
+  color: #000;
+  font-size: 0.58rem;
+  font-weight: 900;
+  padding: 1px 4px;
+  border-radius: 4px;
+  border: 1px solid #fff;
+  box-shadow: 0 0 6px rgba(234, 179, 8, 0.8);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+@keyframes echo-glitch {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(234, 179, 8, 0.4)); }
+  50% { filter: drop-shadow(0 0 12px rgba(234, 179, 8, 0.8)); }
+}
+
+/* Core on Board */
+.core-orb {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffffff 10%, #ffd700 60%, #ff8800 100%);
+  box-shadow: 0 0 18px var(--core-glow), 0 0 32px var(--core-glow);
+  z-index: 5;
+  animation: core-spin 4s infinite linear, core-pulse 2s infinite alternate;
+  pointer-events: none;
+}
+
+@keyframes core-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes core-pulse {
+  0% { transform: scale(0.92); opacity: 0.85; }
+  100% { transform: scale(1.1); opacity: 1; }
+}
+
+/* Piece carrying the core */
+.piece.has-core {
+  box-shadow: 0 0 20px var(--core-glow), inset 0 0 12px var(--core-glow) !important;
+  border-color: var(--core-gold) !important;
+}
+
+.piece.has-core::before {
+  content: '⚡ CORE';
+  position: absolute;
+  bottom: -7px;
+  background: #ffd700;
+  color: #000;
+  font-size: 0.55rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  padding: 1px 5px;
+  border-radius: 3px;
+  box-shadow: 0 0 8px #ffd700;
+}
+
+/* Sidebar Details */
+.setting-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.setting-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+select.form-control, input.form-control {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+select.form-control:focus {
+  border-color: var(--p1-blue);
+}
+
+/* Game Log */
+.log-box {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  height: 240px;
+  overflow-y: auto;
+  padding: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.log-entry {
+  padding: 4px 6px;
+  border-radius: 4px;
+  line-height: 1.4;
+  border-left: 3px solid transparent;
+}
+
+.log-entry.p1 {
+  background: rgba(0, 229, 255, 0.05);
+  border-left-color: var(--p1-blue);
+}
+
+.log-entry.p2 {
+  background: rgba(255, 51, 102, 0.05);
+  border-left-color: var(--p2-red);
+}
+
+.log-entry.system {
+  color: #eab308;
+  font-style: italic;
+  font-size: 0.72rem;
+}
+
+/* Modals */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.modal-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  width: 90%;
+  max-width: 560px;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 24px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transform: scale(0.95);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.modal-overlay.active .modal-card {
+  transform: scale(1);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 12px;
+}
+
+.modal-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.4rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.close-btn:hover {
+  color: #fff;
+}
+
+.rule-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rule-section h3 {
+  font-size: 0.95rem;
+  color: var(--p1-blue);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rule-section p, .rule-section ul {
+  font-size: 0.85rem;
+  color: #cbd5e1;
+  line-height: 1.5;
+}
+
+.rule-section ul {
+  padding-left: 20px;
+}
+
+/* Victory Banner in Modal */
+.victory-card {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.victory-title {
+  font-size: 2rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  margin-bottom: 8px;
+}
+
+.victory-p1 {
+  color: var(--p1-blue);
+  text-shadow: 0 0 24px var(--p1-blue-glow);
+}
+
+.victory-p2 {
+  color: var(--p2-red);
+  text-shadow: 0 0 24px var(--p2-red-glow);
+}
+
+.victory-reason {
+  font-size: 1.05rem;
+  color: #cbd5e1;
+  margin-bottom: 20px;
+}
+
+/* AI Thinking Indicator */
+.ai-status-indicator {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: var(--p2-red);
+  font-family: var(--font-mono);
+}
+
+.ai-status-indicator.thinking {
+  display: inline-flex;
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 51, 102, 0.2);
+  border-top-color: var(--p2-red);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+</style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=JetBrains+Mono:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="logo-group">
+      <div class="game-title">
+        <span>⚡ CHRONO CORE</span>
+      </div>
+      <span class="tagline">5×5 Quantum Tactical Board Game</span>
+    </div>
+    <div class="header-actions">
+      <button class="btn" id="btnSound">🔊 Sound: ON</button>
+      <button class="btn" id="btnRules">📖 Game Rules</button>
+      <button class="btn btn-primary" id="btnReset">🔄 New Game</button>
+    </div>
+  </header>
+
+  <!-- Main Layout -->
+  <div class="main-wrapper">
+
+    <!-- Left Panel: Settings & Status -->
+    <div class="panel">
+      <div class="panel-title">
+        <span>System Status</span>
+        <div class="ai-status-indicator" id="aiStatus">
+          <div class="spinner"></div>
+          <span>AI COMPUTING</span>
+        </div>
+      </div>
+
+      <!-- Turn & Round Banner -->
+      <div class="turn-banner p1-turn" id="turnBanner">
+        <div class="turn-indicator">
+          <div class="turn-orb"></div>
+          <span class="turn-text" id="turnText">PLAYER 1 (YOU)</span>
+        </div>
+        <div class="round-info" id="roundText">ROUND 1 / MOVE 1</div>
+      </div>
+
+      <!-- Match Settings -->
+      <div class="setting-item">
+        <label class="setting-label" for="modeSelect">Game Mode</label>
+        <select class="form-control" id="modeSelect">
+          <option value="pve" selected>Player 1 (Blue) vs AI (Red)</option>
+          <option value="pvp">Local 2-Player (Pass & Play)</option>
+        </select>
+      </div>
+
+      <div class="setting-item">
+        <label class="setting-label" for="diffSelect">AI Opponent Level</label>
+        <select class="form-control" id="diffSelect">
+          <option value="2">Level 1 - Fast (Depth 2)</option>
+          <option value="3" selected>Level 2 - Balanced (Depth 3)</option>
+          <option value="4">Level 3 - Master (Depth 4 Alpha-Beta)</option>
+        </select>
+      </div>
+
+      <!-- Quick Strategy Tips -->
+      <div class="panel-title" style="margin-top: 10px;">
+        <span>Tactical Intel</span>
+      </div>
+      <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; display: flex; flex-direction: column; gap: 8px;">
+        <div><strong>♛ General:</strong> Protect at all costs. Can step 1 square in all 8 directions.</div>
+        <div><strong>▲ Rush:</strong> Long-range spearhead. Sweeps forward or diagonal-forward any distance.</div>
+        <div><strong>♞ Shift:</strong> Quantum knight. Jumps 2 squares forward and 1 sideways over any obstacles.</div>
+        <div><strong>⚡ Core:</strong> Carry to the opponent's back row to trigger instant victory!</div>
+        <div><strong>⏳ Time Echo:</strong> Captured pieces can be dropped anywhere, but vanish on your next turn!</div>
+      </div>
+    </div>
+
+    <!-- Center Play Area -->
+    <div class="play-area">
+
+      <!-- Player 2 (Red) Echo Tray -->
+      <div class="echo-tray p2-tray">
+        <div class="tray-label">
+          <span>P2 / AI Echo Stock</span>
+          <small>Temporary Drops</small>
+        </div>
+        <div class="stock-slots" id="p2Stock">
+          <span class="stock-empty">No Echo Pieces in Stock</span>
+        </div>
+      </div>
+
+      <!-- Board Outer -->
+      <div class="board-container">
+        <div class="board-goal-indicator p1-goal">
+          ▲ P1 Goal Row (Deliver Core to Row 1 to Win) ▲
+        </div>
+
+        <div class="board-grid" id="boardGrid">
+          <!-- 5x5 generated by JS -->
+        </div>
+
+        <div class="board-goal-indicator p2-goal">
+          ▼ P2 Goal Row (Deliver Core to Row 5 to Win) ▼
+        </div>
+      </div>
+
+      <!-- Player 1 (Blue) Echo Tray -->
+      <div class="echo-tray p1-tray">
+        <div class="tray-label">
+          <span>P1 Echo Stock</span>
+          <small>Click piece to Drop</small>
+        </div>
+        <div class="stock-slots" id="p1Stock">
+          <span class="stock-empty">No Echo Pieces in Stock</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right Panel: Game Log & History -->
+    <div class="panel">
+      <div class="panel-title">
+        <span>Combat & Telemetry Log</span>
+      </div>
+      <div class="log-box" id="gameLog">
+        <div class="log-entry system">Grid online. Player 1 (Blue) initiates combat.</div>
+      </div>
+
+      <div class="panel-title">
+        <span>Victory Conditions</span>
+      </div>
+      <div style="font-size: 0.82rem; color: #94a3b8; line-height: 1.5; display: flex; flex-direction: column; gap: 6px;">
+        <div><span style="color: #ef4444; font-weight: 700;">Condition A:</span> Assassinate the opponent's General.</div>
+        <div><span style="color: #ffd700; font-weight: 700;">Condition B:</span> Escort the Central Core into the opponent's baseline.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Rules Modal -->
+  <div class="modal-overlay" id="rulesModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">📖 Chrono Core Operations Manual</div>
+        <button class="close-btn" id="btnCloseRules">&times;</button>
+      </div>
+
+      <div class="rule-section">
+        <h3>1. Board & Initial Setup</h3>
+        <p>Played on a 5×5 grid. Player 1 (Blue) starts at Row 5, moving upward. Player 2 (Red/AI) starts at Row 1, moving downward.</p>
+        <ul>
+          <li><strong>Row 1 (Red):</strong> Rush, Shift, General, Shift, Rush</li>
+          <li><strong>Row 5 (Blue):</strong> Rush, Shift, General, Shift, Rush</li>
+          <li><strong>Central Core:</strong> Placed at (C3 / 2,2) at the start of the match.</li>
+        </ul>
+      </div>
+
+      <div class="rule-section">
+        <h3>2. Piece Movements</h3>
+        <ul>
+          <li><strong>♛ General (1x):</strong> Moves 1 square in any of the 8 orthogonal or diagonal directions.</li>
+          <li><strong>▲ Rush (2x):</strong> Moves straight forward or diagonally forward any number of unobstructed squares. Cannot move backward or sideways.</li>
+          <li><strong>♞ Shift (2x):</strong> Moves 2 squares forward and 1 sideways (Knight/Keima jump). Can leap over friendly and enemy pieces.</li>
+        </ul>
+      </div>
+
+      <div class="rule-section">
+        <h3>3. Core Mechanics & Victory Conditions</h3>
+        <ul>
+          <li><strong>Condition A:</strong> Capture the opponent's General.</li>
+          <li><strong>Condition B:</strong> Move your piece carrying the Central Core into the opponent's back row (Row 1 for P1, Row 5 for P2).</li>
+          <li><strong>Core Carrying:</strong> Moving onto a square with the Core automatically picks it up. If that piece is captured, the Core drops onto that square and the capturing piece claims it.</li>
+        </ul>
+      </div>
+
+      <div class="rule-section">
+        <h3>4. Time Echo (Temporary Drop)</h3>
+        <ul>
+          <li>Captured enemy pieces enter your <strong>Echo Stock</strong>.</li>
+          <li>On your turn, you may spend your action dropping an Echo piece onto any unoccupied square (except the opponent's back row).</li>
+          <li><strong>Crucial Time Echo Rule:</strong> Dropped pieces only last for 1 turn. At the start of your NEXT turn, this piece automatically vanishes into the time stream! If it carried the Core, the Core drops on that square.</li>
+        </ul>
+      </div>
+
+      <button class="btn btn-primary" id="btnCloseRulesBottom" style="margin-top: 10px;" onclick="document.getElementById('rulesModal').classList.remove('active')">Acknowledge & Close</button>
+    </div>
+  </div>
+
+  <!-- Victory / Game Over Modal -->
+  <div class="modal-overlay" id="victoryModal">
+    <div class="modal-card" style="max-width: 440px;">
+      <div class="victory-card">
+        <div class="victory-title victory-p1" id="victoryTitle">PLAYER 1 VICTORIOUS</div>
+        <div class="victory-reason" id="victoryReason">Central Core delivered to opponent base!</div>
+        <button class="btn btn-primary" id="btnPlayAgain" style="padding: 12px 28px; font-size: 1rem; margin: 0 auto;">🔄 Play Another Match</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  
+  
+  <script>
+/**
+ * Chrono Core - Core Game Engine
+ * 5x5 Abstract Strategy Board Game
+ */
+
+(function(root, factory) {
+  if (typeof exports === 'object' && typeof module !== 'undefined') {
+    module.exports = factory();
+  } else if (typeof define === 'function' && define.amd) {
+    define([], factory);
+  } else {
+    root.ChronoCore = factory();
+  }
+}(typeof self !== 'undefined' ? self : this, function() {
+  'use strict';
+
+  const BOARD_SIZE = 5;
+  const PLAYER_BLUE = 1; // P1 (Bottom, moves upward / row decreasing)
+  const PLAYER_RED = 2;  // P2 (Top, moves downward / row increasing)
+
+  const PIECE_TYPES = {
+    GENERAL: 'general',
+    RUSH: 'rush',
+    SHIFT: 'shift'
+  };
+
+  class GameState {
+    constructor() {
+      this.reset();
+    }
+
+    reset() {
+      this.boardSize = BOARD_SIZE;
+      this.turn = PLAYER_BLUE; // Player 1 starts
+      this.moveCount = 0;
+      this.roundCount = 1;
+      this.gameOver = false;
+      this.winner = null;
+      this.winReason = null; // 'general_captured' | 'core_delivered' | 'no_legal_moves'
+
+      // 5x5 board: null or Piece object
+      this.board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null));
+
+      // Core: { r: 2, c: 2, holderId: null }
+      this.core = {
+        r: 2,
+        c: 2,
+        holderId: null
+      };
+
+      // Echo Stock (captured pieces available for temporary drop)
+      this.echoStock = {
+        [PLAYER_BLUE]: [],
+        [PLAYER_RED]: []
+      };
+
+      // History of moves
+      this.history = [];
+
+      this.pieceIdCounter = 1;
+
+      this.setupInitialBoard();
+    }
+
+    createPiece(type, player, isEcho = false) {
+      return {
+        id: this.pieceIdCounter++,
+        type: type,
+        player: player,
+        isEcho: isEcho
+      };
+    }
+
+    setupInitialBoard() {
+      // Row 0 (P2 - Red): [Rush, Shift, General, Shift, Rush]
+      const p2Layout = [PIECE_TYPES.RUSH, PIECE_TYPES.SHIFT, PIECE_TYPES.GENERAL, PIECE_TYPES.SHIFT, PIECE_TYPES.RUSH];
+      for (let c = 0; c < BOARD_SIZE; c++) {
+        this.board[0][c] = this.createPiece(p2Layout[c], PLAYER_RED);
+      }
+
+      // Row 4 (P1 - Blue): [Rush, Shift, General, Shift, Rush]
+      const p1Layout = [PIECE_TYPES.RUSH, PIECE_TYPES.SHIFT, PIECE_TYPES.GENERAL, PIECE_TYPES.SHIFT, PIECE_TYPES.RUSH];
+      for (let c = 0; c < BOARD_SIZE; c++) {
+        this.board[4][c] = this.createPiece(p1Layout[c], PLAYER_BLUE);
+      }
+
+      // Central Core at (2, 2)
+      this.core.r = 2;
+      this.core.c = 2;
+      this.core.holderId = null;
+    }
+
+    /**
+     * Start turn phase:
+     * Crucial rule: "This dropped piece (Echo) only lasts for 1 turn.
+     * At the start of your NEXT turn, this piece automatically vanishes from the board."
+     * If it held the core, the core drops on that square.
+     */
+    startTurnPhase(player = this.turn) {
+      if (this.gameOver) return [];
+
+      const vanishedPieces = [];
+
+      for (let r = 0; r < BOARD_SIZE; r++) {
+        for (let c = 0; c < BOARD_SIZE; c++) {
+          const piece = this.board[r][c];
+          if (piece && piece.player === player && piece.isEcho) {
+            // Echo piece of the current player vanishes at the start of their next turn
+            if (this.core.holderId === piece.id) {
+              this.core.holderId = null;
+              this.core.r = r;
+              this.core.c = c;
+            }
+            vanishedPieces.push({ piece: { ...piece }, r, c });
+            this.board[r][c] = null;
+          }
+        }
+      }
+
+      return vanishedPieces;
+    }
+
+    /**
+     * Deep clone the game state for AI simulation
+     */
+    clone() {
+      const copy = new GameState();
+      copy.boardSize = this.boardSize;
+      copy.turn = this.turn;
+      copy.moveCount = this.moveCount;
+      copy.roundCount = this.roundCount;
+      copy.gameOver = this.gameOver;
+      copy.winner = this.winner;
+      copy.winReason = this.winReason;
+      copy.pieceIdCounter = this.pieceIdCounter;
+
+      copy.board = Array(BOARD_SIZE).fill(null).map((_, r) => 
+        Array(BOARD_SIZE).fill(null).map((_, c) => {
+          const p = this.board[r][c];
+          return p ? { ...p } : null;
+        })
+      );
+
+      copy.core = { ...this.core };
+      copy.echoStock = {
+        [PLAYER_BLUE]: [...this.echoStock[PLAYER_BLUE]],
+        [PLAYER_RED]: [...this.echoStock[PLAYER_RED]]
+      };
+
+      // Don't deep clone entire history for AI performance
+      copy.history = [];
+      return copy;
+    }
+
+    isInside(r, c) {
+      return r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE;
+    }
+
+    getPieceAt(r, c) {
+      if (!this.isInside(r, c)) return null;
+      return this.board[r][c];
+    }
+
+    getCoreCarrier() {
+      if (this.core.holderId === null) return null;
+      for (let r = 0; r < BOARD_SIZE; r++) {
+        for (let c = 0; c < BOARD_SIZE; c++) {
+          const p = this.board[r][c];
+          if (p && p.id === this.core.holderId) {
+            return { piece: p, r, c };
+          }
+        }
+      }
+      return null;
+    }
+
+    /**
+     * Generates all legal moves for a piece at (fromR, fromC)
+     */
+    getPieceMoves(fromR, fromC) {
+      if (this.gameOver) return [];
+      const piece = this.getPieceAt(fromR, fromC);
+      if (!piece || piece.player !== this.turn) return [];
+
+      const moves = [];
+      const forwardDir = piece.player === PLAYER_BLUE ? -1 : 1;
+
+      switch (piece.type) {
+        case PIECE_TYPES.GENERAL: {
+          // 8 directions, 1 square
+          const dirs = [
+            [-1, -1], [-1, 0], [-1, 1],
+            [ 0, -1],          [ 0, 1],
+            [ 1, -1], [ 1, 0], [ 1, 1]
+          ];
+          for (const [dr, dc] of dirs) {
+            const tr = fromR + dr;
+            const tc = fromC + dc;
+            if (this.isInside(tr, tc)) {
+              const target = this.board[tr][tc];
+              if (!target || target.player !== piece.player) {
+                moves.push({
+                  action: 'move',
+                  pieceId: piece.id,
+                  fromR, fromC,
+                  toR: tr, toC: tc,
+                  captured: target ? { ...target } : null
+                });
+              }
+            }
+          }
+          break;
+        }
+
+        case PIECE_TYPES.RUSH: {
+          // Forward or diagonally forward any number of unobstructed squares. Cannot move backward.
+          // Forward directions: (forwardDir, 0), (forwardDir, -1), (forwardDir, 1)
+          const forwardDirs = [
+            [forwardDir, 0],
+            [forwardDir, -1],
+            [forwardDir, 1]
+          ];
+
+          for (const [dr, dc] of forwardDirs) {
+            let tr = fromR + dr;
+            let tc = fromC + dc;
+            while (this.isInside(tr, tc)) {
+              const target = this.board[tr][tc];
+              if (!target) {
+                moves.push({
+                  action: 'move',
+                  pieceId: piece.id,
+                  fromR, fromC,
+                  toR: tr, toC: tc,
+                  captured: null
+                });
+              } else {
+                if (target.player !== piece.player) {
+                  // Capture opponent and stop
+                  moves.push({
+                    action: 'move',
+                    pieceId: piece.id,
+                    fromR, fromC,
+                    toR: tr, toC: tc,
+                    captured: { ...target }
+                  });
+                }
+                // Path blocked by piece, stop ray
+                break;
+              }
+              tr += dr;
+              tc += dc;
+            }
+          }
+          break;
+        }
+
+        case PIECE_TYPES.SHIFT: {
+          // Moves 1 square forward, then 1 square diagonally forward.
+          // Can jump over other pieces (Knight/Keima style).
+          // Relative coordinates: (forwardDir * 2, -1) and (forwardDir * 2, +1)
+          const jumps = [
+            [forwardDir * 2, -1],
+            [forwardDir * 2, 1]
+          ];
+
+          for (const [dr, dc] of jumps) {
+            const tr = fromR + dr;
+            const tc = fromC + dc;
+            if (this.isInside(tr, tc)) {
+              const target = this.board[tr][tc];
+              if (!target || target.player !== piece.player) {
+                moves.push({
+                  action: 'move',
+                  pieceId: piece.id,
+                  fromR, fromC,
+                  toR: tr, toC: tc,
+                  captured: target ? { ...target } : null
+                });
+              }
+            }
+          }
+          break;
+        }
+      }
+
+      return moves;
+    }
+
+    /**
+     * Generates all legal drop moves for the current player
+     * "You can spend your turn dropping a piece from your Echo Stock onto any empty square (except the opponent's back row)."
+     */
+    getDropMoves(specificType = null) {
+      if (this.gameOver) return [];
+      const player = this.turn;
+      const stock = this.echoStock[player];
+      if (!stock || stock.length === 0) return [];
+
+      const availableTypes = specificType ? [specificType] : [...new Set(stock)];
+      const opponentBackRow = player === PLAYER_BLUE ? 0 : 4;
+      const drops = [];
+
+      for (let r = 0; r < BOARD_SIZE; r++) {
+        if (r === opponentBackRow) continue; // Cannot drop on opponent back row
+
+        for (let c = 0; c < BOARD_SIZE; c++) {
+          if (this.board[r][c] === null) {
+            // Empty square (Core alone is an object, not a piece blocking the square)
+            for (const type of availableTypes) {
+              drops.push({
+                action: 'drop',
+                pieceType: type,
+                player: player,
+                toR: r,
+                toC: c
+              });
+            }
+          }
+        }
+      }
+
+      return drops;
+    }
+
+    /**
+     * Get ALL legal moves for current turn (piece moves + echo drops)
+     */
+    getAllLegalMoves() {
+      if (this.gameOver) return [];
+      const moves = [];
+
+      // Piece moves
+      for (let r = 0; r < BOARD_SIZE; r++) {
+        for (let c = 0; c < BOARD_SIZE; c++) {
+          const piece = this.board[r][c];
+          if (piece && piece.player === this.turn) {
+            moves.push(...this.getPieceMoves(r, c));
+          }
+        }
+      }
+
+      // Echo drops
+      moves.push(...this.getDropMoves());
+
+      return moves;
+    }
+
+    /**
+     * Execute a move (either 'move' or 'drop')
+     */
+    makeMove(move) {
+      if (this.gameOver) {
+        throw new Error('Cannot make move: game is already over');
+      }
+
+      const activePlayer = this.turn;
+      const opponent = activePlayer === PLAYER_BLUE ? PLAYER_RED : PLAYER_BLUE;
+      const opponentBackRow = activePlayer === PLAYER_BLUE ? 0 : 4;
+
+      let moveRecord = {
+        moveNumber: this.moveCount + 1,
+        player: activePlayer,
+        type: move.action,
+        corePickedUp: false,
+        coreDropped: false
+      };
+
+      if (move.action === 'move') {
+        const { fromR, fromC, toR, toC } = move;
+        const piece = this.board[fromR][fromC];
+        if (!piece || piece.player !== activePlayer) {
+          throw new Error(`Invalid move: piece at (${fromR}, ${fromC}) is not owned by player ${activePlayer}`);
+        }
+
+        const target = this.board[toR][toC];
+        moveRecord.from = { r: fromR, c: fromC };
+        moveRecord.to = { r: toR, c: toC };
+        moveRecord.piece = { ...piece };
+
+        // Handle capture
+        if (target) {
+          moveRecord.captured = { ...target };
+          // Captured piece goes into Echo Stock of the capturer (as original type)
+          this.echoStock[activePlayer].push(target.type);
+
+          // If target held Core, it drops onto that square
+          if (this.core.holderId === target.id) {
+            this.core.holderId = null;
+            this.core.r = toR;
+            this.core.c = toC;
+            moveRecord.coreDropped = true;
+          }
+
+          // Check Victory Condition A: Capture opponent's General
+          if (target.type === PIECE_TYPES.GENERAL) {
+            this.gameOver = true;
+            this.winner = activePlayer;
+            this.winReason = 'general_captured';
+          }
+        }
+
+        // Move piece to destination
+        this.board[fromR][fromC] = null;
+        this.board[toR][toC] = piece;
+
+        // Core logic:
+        // If piece already carries the core, update core position
+        if (this.core.holderId === piece.id) {
+          this.core.r = toR;
+          this.core.c = toC;
+        } else if (this.core.holderId === null && this.core.r === toR && this.core.c === toC) {
+          // If Core is on this square (unattended or just dropped by captured target), piece automatically picks it up
+          this.core.holderId = piece.id;
+          moveRecord.corePickedUp = true;
+        }
+
+        // Check Victory Condition B:
+        // "Move your own piece carrying the Central Core into the opponent's back row"
+        if (!this.gameOver && this.core.holderId === piece.id && toR === opponentBackRow) {
+          this.gameOver = true;
+          this.winner = activePlayer;
+          this.winReason = 'core_delivered';
+        }
+
+      } else if (move.action === 'drop') {
+        const { pieceType, toR, toC } = move;
+
+        if (toR === opponentBackRow) {
+          throw new Error('Illegal drop: cannot drop piece on opponent back row');
+        }
+        if (this.board[toR][toC] !== null) {
+          throw new Error(`Illegal drop: square (${toR}, ${toC}) is not empty`);
+        }
+
+        const stockIndex = this.echoStock[activePlayer].indexOf(pieceType);
+        if (stockIndex === -1) {
+          throw new Error(`Illegal drop: ${pieceType} is not in player ${activePlayer}'s Echo Stock`);
+        }
+
+        // Remove from stock
+        this.echoStock[activePlayer].splice(stockIndex, 1);
+
+        // Place new Echo piece (isEcho = true)
+        const droppedPiece = this.createPiece(pieceType, activePlayer, true);
+        this.board[toR][toC] = droppedPiece;
+
+        moveRecord.to = { r: toR, c: toC };
+        moveRecord.piece = { ...droppedPiece };
+
+        // If core is at this square, dropped piece picks it up
+        if (this.core.holderId === null && this.core.r === toR && this.core.c === toC) {
+          this.core.holderId = droppedPiece.id;
+          moveRecord.corePickedUp = true;
+        }
+      }
+
+      this.moveCount++;
+      if (activePlayer === PLAYER_RED) {
+        this.roundCount++;
+      }
+
+      this.history.push(moveRecord);
+
+      // Switch turn if game is not over
+      if (!this.gameOver) {
+        this.turn = opponent;
+        // Start next turn phase (vanishing of current player's echoes)
+        const vanished = this.startTurnPhase(this.turn);
+        if (vanished.length > 0) {
+          moveRecord.vanishedNextTurn = vanished;
+        }
+
+        // Check if next player has any legal moves
+        const nextMoves = this.getAllLegalMoves();
+        if (nextMoves.length === 0) {
+          this.gameOver = true;
+          this.winner = activePlayer;
+          this.winReason = 'no_legal_moves';
+        }
+      }
+
+      return moveRecord;
+    }
+  }
+
+  return {
+    BOARD_SIZE,
+    PLAYER_BLUE,
+    PLAYER_RED,
+    PIECE_TYPES,
+    GameState
+  };
+}));
+
+</script>
+<script>
+/**
+ * Chrono Core - AI Engine (Minimax with Alpha-Beta Pruning)
+ * Highly optimized heuristic evaluation for 5x5 board tactics.
+ */
+
+(function(root, factory) {
+  if (typeof exports === 'object' && typeof module !== 'undefined') {
+    const ChronoCore = require('./game');
+    module.exports = factory(ChronoCore);
+  } else if (typeof define === 'function' && define.amd) {
+    define(['./game'], factory);
+  } else {
+    root.ChronoCoreAI = factory(root.ChronoCore);
+  }
+}(typeof self !== 'undefined' ? self : this, function(ChronoCore) {
+  'use strict';
+
+  const { BOARD_SIZE, PLAYER_BLUE, PLAYER_RED, PIECE_TYPES } = ChronoCore;
+
+  const PIECE_VALUES = {
+    [PIECE_TYPES.GENERAL]: 10000,
+    [PIECE_TYPES.RUSH]: 360,
+    [PIECE_TYPES.SHIFT]: 300
+  };
+
+  const STOCK_VALUES = {
+    [PIECE_TYPES.GENERAL]: 1200,
+    [PIECE_TYPES.RUSH]: 150,
+    [PIECE_TYPES.SHIFT]: 130
+  };
+
+  // Positional heatmaps for advancement
+  // P2 (Red) moves from row 0 down to row 4
+  const P2_ADVANCE_WEIGHT = [0, 15, 35, 60, 100];
+  // P1 (Blue) moves from row 4 up to row 0
+  const P1_ADVANCE_WEIGHT = [100, 60, 35, 15, 0];
+
+  class AIPlayer {
+    constructor(player = PLAYER_RED, defaultDepth = 3) {
+      this.player = player;
+      this.opponent = player === PLAYER_RED ? PLAYER_BLUE : PLAYER_RED;
+      this.depth = defaultDepth;
+      this.nodesEvaluated = 0;
+    }
+
+    setDepth(depth) {
+      this.depth = Math.max(1, Math.min(depth, 5));
+    }
+
+    reset() {
+      this.nodesEvaluated = 0;
+    }
+
+    /**
+     * Evaluate board from perspective of this.player
+     * Positive = favorable for this.player
+     */
+    evaluate(gameState) {
+      if (gameState.gameOver) {
+        if (gameState.winner === this.player) {
+          return 999999;
+        } else if (gameState.winner === this.opponent) {
+          return -999999;
+        }
+        return 0; // Draw
+      }
+
+      let score = 0;
+      let p1GenPos = null;
+      let p2GenPos = null;
+
+      // 1. Material & Position on Board
+      for (let r = 0; r < BOARD_SIZE; r++) {
+        for (let c = 0; c < BOARD_SIZE; c++) {
+          const piece = gameState.board[r][c];
+          if (!piece) continue;
+
+          let val = PIECE_VALUES[piece.type] || 0;
+          if (piece.isEcho) {
+            val = Math.floor(val * 0.35); // Echo piece only lasts 1 turn
+          }
+
+          // Advance positional bonus
+          if (piece.type !== PIECE_TYPES.GENERAL) {
+            val += piece.player === PLAYER_RED ? P2_ADVANCE_WEIGHT[r] : P1_ADVANCE_WEIGHT[r];
+          }
+
+          if (piece.player === this.player) {
+            score += val;
+          } else {
+            score -= val;
+          }
+
+          if (piece.type === PIECE_TYPES.GENERAL) {
+            if (piece.player === PLAYER_BLUE) p1GenPos = { r, c };
+            else p2GenPos = { r, c };
+          }
+        }
+      }
+
+      // 2. Echo Stock Material
+      const myStock = gameState.echoStock[this.player] || [];
+      const oppStock = gameState.echoStock[this.opponent] || [];
+
+      for (const t of myStock) {
+        score += STOCK_VALUES[t] || 100;
+      }
+      for (const t of oppStock) {
+        score -= STOCK_VALUES[t] || 100;
+      }
+
+      // 3. Central Core Control & Goal Proximity
+      const core = gameState.core;
+      const coreHolder = gameState.getCoreCarrier();
+
+      if (coreHolder) {
+        const carrier = coreHolder.piece;
+        const cr = coreHolder.r;
+
+        if (carrier.player === this.player) {
+          // AI carries core! Great advantage.
+          // Goal for P2 (Red) is row 4. Distance to row 4: (4 - cr).
+          // Goal for P1 (Blue) is row 0. Distance to row 0: cr.
+          const distToGoal = this.player === PLAYER_RED ? (4 - cr) : cr;
+          const proximityScore = (4 - distToGoal) * 220;
+          score += 650 + proximityScore;
+        } else {
+          // Opponent carries core! Serious threat.
+          const distToGoal = this.opponent === PLAYER_RED ? (4 - cr) : cr;
+          const proximityScore = (4 - distToGoal) * 240;
+          score -= (700 + proximityScore);
+        }
+      } else {
+        // Core is on the floor at (core.r, core.c).
+        // Reward proximity of my pieces to the core.
+        let minMyDist = 99;
+        let minOppDist = 99;
+
+        for (let r = 0; r < BOARD_SIZE; r++) {
+          for (let c = 0; c < BOARD_SIZE; c++) {
+            const p = gameState.board[r][c];
+            if (!p) continue;
+            const dist = Math.abs(r - core.r) + Math.abs(c - core.c);
+            if (p.player === this.player) {
+              if (dist < minMyDist) minMyDist = dist;
+            } else {
+              if (dist < minOppDist) minOppDist = dist;
+            }
+          }
+        }
+
+        score += (minOppDist - minMyDist) * 35;
+      }
+
+      // 4. General Safety
+      const myGenPos = this.player === PLAYER_BLUE ? p1GenPos : p2GenPos;
+      if (myGenPos) {
+        const centerDist = Math.abs(myGenPos.c - 2);
+        score -= centerDist * 15;
+      }
+
+      return score;
+    }
+
+    /**
+     * Prioritize moves for better alpha-beta cutoffs
+     */
+    orderMoves(moves, gameState) {
+      const opponentBackRow = gameState.turn === PLAYER_BLUE ? 0 : 4;
+      const coreHolderId = gameState.core.holderId;
+
+      return moves.sort((a, b) => {
+        let scoreA = 0;
+        let scoreB = 0;
+
+        // Winning moves get highest priority
+        if (a.action === 'move') {
+          if (a.captured && a.captured.type === PIECE_TYPES.GENERAL) scoreA += 50000;
+          if (coreHolderId === a.pieceId && a.toR === opponentBackRow) scoreA += 50000;
+          if (a.captured) scoreA += (PIECE_VALUES[a.captured.type] || 300) * 5;
+          if (gameState.core.r === a.toR && gameState.core.c === a.toC && coreHolderId === null) {
+            scoreA += 1500; // Grabbing the Core
+          }
+        } else if (a.action === 'drop') {
+          if (gameState.core.r === a.toR && gameState.core.c === a.toC && coreHolderId === null) {
+            scoreA += 1200;
+          }
+        }
+
+        if (b.action === 'move') {
+          if (b.captured && b.captured.type === PIECE_TYPES.GENERAL) scoreB += 50000;
+          if (coreHolderId === b.pieceId && b.toR === opponentBackRow) scoreB += 50000;
+          if (b.captured) scoreB += (PIECE_VALUES[b.captured.type] || 300) * 5;
+          if (gameState.core.r === b.toR && gameState.core.c === b.toC && coreHolderId === null) {
+            scoreB += 1500;
+          }
+        } else if (b.action === 'drop') {
+          if (gameState.core.r === b.toR && gameState.core.c === b.toC && coreHolderId === null) {
+            scoreB += 1200;
+          }
+        }
+
+        return scoreB - scoreA;
+      });
+    }
+
+    /**
+     * Minimax with Alpha-Beta pruning
+     */
+    minimax(gameState, depth, alpha, beta, isMaximizing) {
+      this.nodesEvaluated++;
+
+      if (depth === 0 || gameState.gameOver) {
+        return { score: this.evaluate(gameState), bestMove: null };
+      }
+
+      const legalMoves = gameState.getAllLegalMoves();
+      if (legalMoves.length === 0) {
+        return { score: this.evaluate(gameState), bestMove: null };
+      }
+
+      const sortedMoves = this.orderMoves(legalMoves, gameState);
+      let bestMove = null;
+
+      if (isMaximizing) {
+        let maxEval = -Infinity;
+        for (const move of sortedMoves) {
+          const simState = gameState.clone();
+          simState.makeMove(move);
+
+          const result = this.minimax(simState, depth - 1, alpha, beta, false);
+          if (result.score > maxEval) {
+            maxEval = result.score;
+            bestMove = move;
+          }
+          alpha = Math.max(alpha, result.score);
+          if (beta <= alpha) {
+            break; // Beta cutoff
+          }
+        }
+        return { score: maxEval, bestMove };
+      } else {
+        let minEval = Infinity;
+        for (const move of sortedMoves) {
+          const simState = gameState.clone();
+          simState.makeMove(move);
+
+          const result = this.minimax(simState, depth - 1, alpha, beta, true);
+          if (result.score < minEval) {
+            minEval = result.score;
+            bestMove = move;
+          }
+          beta = Math.min(beta, result.score);
+          if (beta <= alpha) {
+            break; // Alpha cutoff
+          }
+        }
+        return { score: minEval, bestMove };
+      }
+    }
+
+    /**
+     * Choose the best legal move for the current player
+     * Consistently returns { move, score, nodes, timeMs }
+     */
+    chooseMove(gameState, depthOverride = null) {
+      this.nodesEvaluated = 0;
+      const searchDepth = depthOverride || this.depth;
+      const legalMoves = gameState.getAllLegalMoves();
+
+      if (legalMoves.length === 0) {
+        return null;
+      }
+      if (legalMoves.length === 1) {
+        return {
+          move: legalMoves[0],
+          score: 0,
+          nodes: 1,
+          timeMs: 0
+        };
+      }
+
+      // Check for immediate winning moves first (depth 1 check)
+      const opponentBackRow = gameState.turn === PLAYER_BLUE ? 0 : 4;
+      const coreHolderId = gameState.core.holderId;
+
+      for (const m of legalMoves) {
+        if (m.action === 'move') {
+          if (m.captured && m.captured.type === PIECE_TYPES.GENERAL) {
+            return {
+              move: m,
+              score: 999999,
+              nodes: 1,
+              timeMs: 0
+            };
+          }
+          if (coreHolderId === m.pieceId && m.toR === opponentBackRow) {
+            return {
+              move: m,
+              score: 999999,
+              nodes: 1,
+              timeMs: 0
+            };
+          }
+        }
+      }
+
+      const isMaximizing = gameState.turn === this.player;
+      const startTime = Date.now();
+      const result = this.minimax(gameState, searchDepth, -Infinity, Infinity, isMaximizing);
+      const elapsed = Date.now() - startTime;
+
+      return {
+        move: result.bestMove || legalMoves[0],
+        score: result.score,
+        nodes: this.nodesEvaluated,
+        timeMs: elapsed
+      };
+    }
+  }
+
+  return {
+    AIPlayer,
+    PIECE_VALUES,
+    STOCK_VALUES
+  };
+}));
+
+</script>
+<script>
+/**
+ * Chrono Core - Web Application Controller & UI Renderer
+ */
+
+(function() {
+  'use strict';
+
+  // Constants & Glyphs
+  const PIECE_ICONS = {
+    general: '♛',
+    rush: '▲',
+    shift: '♞'
+  };
+
+  const PIECE_NAMES = {
+    general: 'General',
+    rush: 'Rush',
+    shift: 'Shift'
+  };
+
+  // Web Audio Synthesizer (No external sound files required)
+  class SoundManager {
+    constructor() {
+      this.enabled = true;
+      this.ctx = null;
+    }
+
+    init() {
+      if (!this.ctx && (window.AudioContext || window.webkitAudioContext)) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        this.ctx = new AudioCtx();
+      }
+      if (this.ctx && this.ctx.state === 'suspended') {
+        this.ctx.resume();
+      }
+    }
+
+    toggle() {
+      this.enabled = !this.enabled;
+      return this.enabled;
+    }
+
+    playTone(freq, type = 'sine', duration = 0.12, gainValue = 0.15) {
+      if (!this.enabled) return;
+      try {
+        this.init();
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+        gain.gain.setValueAtTime(gainValue, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + duration);
+      } catch (e) {
+        console.warn('Audio play error:', e);
+      }
+    }
+
+    playSelect() {
+      this.playTone(520, 'sine', 0.08, 0.1);
+    }
+
+    playMove() {
+      this.playTone(330, 'triangle', 0.14, 0.18);
+    }
+
+    playCapture() {
+      if (!this.enabled) return;
+      try {
+        this.init();
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(220, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(80, this.ctx.currentTime + 0.22);
+        gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.22);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.22);
+      } catch (e) {}
+    }
+
+    playCore() {
+      if (!this.enabled) return;
+      const notes = [659, 880, 1174];
+      notes.forEach((f, i) => {
+        setTimeout(() => this.playTone(f, 'sine', 0.25, 0.12), i * 70);
+      });
+    }
+
+    playDrop() {
+      if (!this.enabled) return;
+      try {
+        this.init();
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(200, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(600, this.ctx.currentTime + 0.18);
+        gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.18);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.18);
+      } catch (e) {}
+    }
+
+    playVanish() {
+      this.playTone(180, 'square', 0.15, 0.08);
+    }
+
+    playVictory() {
+      if (!this.enabled) return;
+      const chords = [523.25, 659.25, 783.99, 1046.50];
+      chords.forEach((f, i) => {
+        setTimeout(() => this.playTone(f, 'triangle', 0.45, 0.18), i * 90);
+      });
+    }
+  }
+
+  // App Controller
+  class ChronoCoreApp {
+    constructor() {
+      this.game = new ChronoCore.GameState();
+      this.ai = new ChronoCoreAI.AIPlayer(ChronoCore.PLAYER_RED, 3);
+      this.sound = new SoundManager();
+
+      this.gameMode = 'pve'; // 'pve' (Player vs AI), 'pvp' (Pass & Play)
+      this.selectedCell = null; // { r, c }
+      this.selectedDropType = null; // pieceType from Echo Stock
+      this.activeLegalMoves = [];
+      this.isAIThinking = false;
+
+      this.dom = {
+        board: document.getElementById('boardGrid'),
+        turnBanner: document.getElementById('turnBanner'),
+        turnText: document.getElementById('turnText'),
+        roundText: document.getElementById('roundText'),
+        aiStatus: document.getElementById('aiStatus'),
+        p1Stock: document.getElementById('p1Stock'),
+        p2Stock: document.getElementById('p2Stock'),
+        gameLog: document.getElementById('gameLog'),
+        modeSelect: document.getElementById('modeSelect'),
+        diffSelect: document.getElementById('diffSelect'),
+        btnReset: document.getElementById('btnReset'),
+        btnRules: document.getElementById('btnRules'),
+        btnSound: document.getElementById('btnSound'),
+        rulesModal: document.getElementById('rulesModal'),
+        victoryModal: document.getElementById('victoryModal'),
+        btnCloseRules: document.getElementById('btnCloseRules'),
+        btnPlayAgain: document.getElementById('btnPlayAgain'),
+        victoryTitle: document.getElementById('victoryTitle'),
+        victoryReason: document.getElementById('victoryReason')
+      };
+
+      this.initEvents();
+      this.render();
+    }
+
+    initEvents() {
+      // Board clicks
+      this.dom.board.addEventListener('click', (e) => {
+        const cellEl = e.target.closest('.cell');
+        if (!cellEl) return;
+        const r = parseInt(cellEl.dataset.r, 10);
+        const c = parseInt(cellEl.dataset.c, 10);
+        this.handleCellClick(r, c);
+      });
+
+      // Controls
+      this.dom.btnReset.addEventListener('click', () => {
+        this.sound.playSelect();
+        this.resetGame();
+      });
+
+      this.dom.modeSelect.addEventListener('change', (e) => {
+        this.gameMode = e.target.value;
+        this.logMessage(`Mode changed to: ${e.target.options[e.target.selectedIndex].text}`, 'system');
+        this.resetGame();
+      });
+
+      this.dom.diffSelect.addEventListener('change', (e) => {
+        const depth = parseInt(e.target.value, 10);
+        this.ai.setDepth(depth);
+        this.logMessage(`AI Difficulty set to: Depth ${depth}`, 'system');
+      });
+
+      this.dom.btnSound.addEventListener('click', () => {
+        const state = this.sound.toggle();
+        this.dom.btnSound.textContent = state ? '🔊 Sound: ON' : '🔇 Sound: OFF';
+      });
+
+      // Modals
+      this.dom.btnRules.addEventListener('click', () => {
+        this.sound.playSelect();
+        this.dom.rulesModal.classList.add('active');
+      });
+
+      this.dom.btnCloseRules.addEventListener('click', () => {
+        this.sound.playSelect();
+        this.dom.rulesModal.classList.remove('active');
+      });
+
+      this.dom.btnPlayAgain.addEventListener('click', () => {
+        this.sound.playSelect();
+        this.dom.victoryModal.classList.remove('active');
+        this.resetGame();
+      });
+
+      // Echo Stock clicks
+      this.dom.p1Stock.addEventListener('click', (e) => this.handleStockClick(e, ChronoCore.PLAYER_BLUE));
+      this.dom.p2Stock.addEventListener('click', (e) => this.handleStockClick(e, ChronoCore.PLAYER_RED));
+    }
+
+    resetGame() {
+      this.game.reset();
+      this.selectedCell = null;
+      this.selectedDropType = null;
+      this.activeLegalMoves = [];
+      this.isAIThinking = false;
+      this.dom.gameLog.innerHTML = '';
+      this.dom.victoryModal.classList.remove('active');
+      this.logMessage('System initialized. Chrono Core grid online.', 'system');
+      this.render();
+    }
+
+    handleStockClick(e, player) {
+      if (this.game.gameOver || this.isAIThinking) return;
+      if (this.game.turn !== player) return;
+      if (this.gameMode === 'pve' && player === ChronoCore.PLAYER_RED) return; // AI controls Red
+
+      const card = e.target.closest('.stock-card');
+      if (!card) return;
+
+      const pieceType = card.dataset.type;
+      if (this.selectedDropType === pieceType) {
+        // Deselect
+        this.selectedDropType = null;
+        this.activeLegalMoves = [];
+      } else {
+        this.selectedCell = null;
+        this.selectedDropType = pieceType;
+        this.activeLegalMoves = this.game.getDropMoves(pieceType);
+        this.sound.playSelect();
+      }
+      this.render();
+    }
+
+    handleCellClick(r, c) {
+      if (this.game.gameOver || this.isAIThinking) return;
+
+      // Player 2 check in PvE
+      if (this.gameMode === 'pve' && this.game.turn === ChronoCore.PLAYER_RED) {
+        return;
+      }
+
+      // 1. If in drop mode:
+      if (this.selectedDropType) {
+        const dropMove = this.activeLegalMoves.find(m => m.action === 'drop' && m.toR === r && m.toC === c);
+        if (dropMove) {
+          this.executeMove(dropMove);
+          this.selectedDropType = null;
+          this.activeLegalMoves = [];
+          return;
+        } else {
+          // Cancel drop if clicking elsewhere
+          this.selectedDropType = null;
+          this.activeLegalMoves = [];
+          this.render();
+        }
+      }
+
+      // 2. If a piece is already selected, check if (r, c) is a legal target:
+      if (this.selectedCell) {
+        const move = this.activeLegalMoves.find(m => m.action === 'move' && m.toR === r && m.toC === c);
+        if (move) {
+          this.executeMove(move);
+          this.selectedCell = null;
+          this.activeLegalMoves = [];
+          return;
+        }
+      }
+
+      // 3. Otherwise, select the clicked piece if it belongs to active player
+      const piece = this.game.getPieceAt(r, c);
+      if (piece && piece.player === this.game.turn) {
+        this.sound.playSelect();
+        this.selectedCell = { r, c };
+        this.selectedDropType = null;
+        this.activeLegalMoves = this.game.getPieceMoves(r, c);
+      } else {
+        this.selectedCell = null;
+        this.selectedDropType = null;
+        this.activeLegalMoves = [];
+      }
+
+      this.render();
+    }
+
+    executeMove(move) {
+      try {
+        const record = this.game.makeMove(move);
+
+        // Sound effects
+        if (record.captured) {
+          this.sound.playCapture();
+        } else if (record.corePickedUp) {
+          this.sound.playCore();
+        } else if (move.action === 'drop') {
+          this.sound.playDrop();
+        } else {
+          this.sound.playMove();
+        }
+
+        // Check if echo piece vanished on this turn switch
+        if (record.vanishedNextTurn && record.vanishedNextTurn.length > 0) {
+          this.sound.playVanish();
+          for (const v of record.vanishedNextTurn) {
+            this.logMessage(`⏳ Echo ${PIECE_NAMES[v.piece.type]} at (${v.r},${v.c}) vanished into time stream.`, 'system');
+          }
+        }
+
+        // Log move
+        this.logMove(record);
+
+        this.selectedCell = null;
+        this.selectedDropType = null;
+        this.activeLegalMoves = [];
+        this.render();
+
+        // Check Victory
+        if (this.game.gameOver) {
+          this.handleGameOver();
+          return;
+        }
+
+        // Trigger AI if PvE mode and it's Red's turn
+        if (this.gameMode === 'pve' && this.game.turn === ChronoCore.PLAYER_RED) {
+          this.triggerAIMove();
+        }
+
+      } catch (err) {
+        console.error('Move execution failed:', err);
+      }
+    }
+
+    triggerAIMove() {
+      this.isAIThinking = true;
+      this.dom.aiStatus.classList.add('thinking');
+
+      setTimeout(() => {
+        const result = this.ai.chooseMove(this.game);
+        this.isAIThinking = false;
+        this.dom.aiStatus.classList.remove('thinking');
+
+        if (result && result.move) {
+          this.executeMove(result.move);
+        } else {
+          console.warn('AI could not find legal move.');
+        }
+      }, 400); // 400ms delay for natural visual pacing
+    }
+
+    handleGameOver() {
+      this.sound.playVictory();
+      const winnerName = this.game.winner === ChronoCore.PLAYER_BLUE ? 'PLAYER 1 (BLUE)' : 'PLAYER 2 (RED)';
+      const winClass = this.game.winner === ChronoCore.PLAYER_BLUE ? 'victory-p1' : 'victory-p2';
+
+      let reasonText = '';
+      if (this.game.winReason === 'general_captured') {
+        reasonText = 'Opponent General has been captured in combat!';
+      } else if (this.game.winReason === 'core_delivered') {
+        reasonText = 'The Central Core has been successfully breached into the opponent back row!';
+      } else {
+        reasonText = 'Opponent has been locked out of all legal moves!';
+      }
+
+      this.dom.victoryTitle.textContent = `${winnerName} VICTORIOUS`;
+      this.dom.victoryTitle.className = `victory-title ${winClass}`;
+      this.dom.victoryReason.textContent = reasonText;
+
+      this.dom.victoryModal.classList.add('active');
+      this.logMessage(`🏆 GAME OVER: ${winnerName} won (${this.game.winReason})`, 'system');
+    }
+
+    logMove(record) {
+      const pTag = record.player === ChronoCore.PLAYER_BLUE ? 'P1' : 'P2';
+      const colLabels = ['A', 'B', 'C', 'D', 'E'];
+      let msg = '';
+
+      if (record.type === 'move') {
+        const fromCoord = `${colLabels[record.from.c]}${5 - record.from.r}`;
+        const toCoord = `${colLabels[record.to.c]}${5 - record.to.r}`;
+        const name = PIECE_NAMES[record.piece.type];
+        msg = `${pTag}: ${name} ${fromCoord} ➔ ${toCoord}`;
+        if (record.captured) {
+          msg += ` (Captured ${PIECE_NAMES[record.captured.type]})`;
+        }
+        if (record.corePickedUp) {
+          msg += ` ⚡ Captured Core`;
+        }
+      } else {
+        const toCoord = `${colLabels[record.to.c]}${5 - record.to.r}`;
+        msg = `${pTag}: Dropped Echo ${PIECE_NAMES[record.piece.type]} at ${toCoord}`;
+        if (record.corePickedUp) {
+          msg += ` ⚡ Claimed Core`;
+        }
+      }
+
+      this.logMessage(msg, record.player === ChronoCore.PLAYER_BLUE ? 'p1' : 'p2');
+    }
+
+    logMessage(text, type = 'system') {
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.textContent = text;
+      this.dom.gameLog.appendChild(entry);
+      this.dom.gameLog.scrollTop = this.dom.gameLog.scrollHeight;
+    }
+
+    render() {
+      // 1. Turn Banner
+      const isP1 = this.game.turn === ChronoCore.PLAYER_BLUE;
+      this.dom.turnBanner.className = `turn-banner ${isP1 ? 'p1-turn' : 'p2-turn'}`;
+      this.dom.turnText.textContent = isP1 
+        ? (this.gameMode === 'pve' ? 'PLAYER 1 (YOU)' : 'PLAYER 1 (BLUE)')
+        : (this.gameMode === 'pve' ? 'AI OPPONENT (RED)' : 'PLAYER 2 (RED)');
+      this.dom.roundText.textContent = `ROUND ${this.game.roundCount} / MOVE ${this.game.moveCount + 1}`;
+
+      // 2. Render Board
+      this.dom.board.innerHTML = '';
+      const colLabels = ['A', 'B', 'C', 'D', 'E'];
+
+      for (let r = 0; r < ChronoCore.BOARD_SIZE; r++) {
+        for (let c = 0; c < ChronoCore.BOARD_SIZE; c++) {
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          cell.dataset.r = r;
+          cell.dataset.c = c;
+
+          // Coordinate label
+          const coord = document.createElement('span');
+          coord.className = 'coord-label';
+          coord.textContent = `${colLabels[c]}${5 - r}`;
+          cell.appendChild(coord);
+
+          // Check if selected
+          if (this.selectedCell && this.selectedCell.r === r && this.selectedCell.c === c) {
+            cell.classList.add('selected');
+          }
+
+          // Check valid move / capture / drop highlights
+          if (this.activeLegalMoves.length > 0) {
+            const moveMatch = this.activeLegalMoves.find(m => m.toR === r && m.toC === c);
+            if (moveMatch) {
+              if (moveMatch.action === 'drop') {
+                cell.classList.add('valid-drop');
+              } else if (moveMatch.captured) {
+                cell.classList.add('valid-capture');
+              } else {
+                cell.classList.add('valid-move');
+              }
+            }
+          }
+
+          // Piece
+          const piece = this.game.board[r][c];
+          if (piece) {
+            const pieceEl = document.createElement('div');
+            pieceEl.className = `piece player-${piece.player}`;
+
+            if (piece.isEcho) {
+              pieceEl.classList.add('is-echo');
+              const badge = document.createElement('span');
+              badge.className = 'echo-badge';
+              badge.textContent = '⏳ ECHO';
+              pieceEl.appendChild(badge);
+            }
+
+            if (this.game.core.holderId === piece.id) {
+              pieceEl.classList.add('has-core');
+            }
+
+            const icon = document.createElement('div');
+            icon.className = 'piece-icon';
+            icon.textContent = PIECE_ICONS[piece.type];
+
+            const name = document.createElement('div');
+            name.className = 'piece-name';
+            name.textContent = PIECE_NAMES[piece.type];
+
+            pieceEl.appendChild(icon);
+            pieceEl.appendChild(name);
+            cell.appendChild(pieceEl);
+          } else if (this.game.core.holderId === null && this.game.core.r === r && this.game.core.c === c) {
+            // Unattended Core on the floor
+            const coreEl = document.createElement('div');
+            coreEl.className = 'core-orb';
+            cell.appendChild(coreEl);
+          }
+
+          this.dom.board.appendChild(cell);
+        }
+      }
+
+      // 3. Render Echo Stocks
+      this.renderStock(this.dom.p1Stock, ChronoCore.PLAYER_BLUE);
+      this.renderStock(this.dom.p2Stock, ChronoCore.PLAYER_RED);
+    }
+
+    renderStock(container, player) {
+      container.innerHTML = '';
+      const stock = this.game.echoStock[player];
+
+      if (!stock || stock.length === 0) {
+        const empty = document.createElement('span');
+        empty.className = 'stock-empty';
+        empty.textContent = 'No Echo Pieces in Stock';
+        container.appendChild(empty);
+        return;
+      }
+
+      stock.forEach((type, idx) => {
+        const card = document.createElement('div');
+        card.className = 'stock-card';
+        card.dataset.type = type;
+        card.dataset.index = idx;
+
+        if (this.selectedDropType === type && this.game.turn === player) {
+          card.classList.add('selected');
+        }
+
+        card.innerHTML = `
+          <span>${PIECE_ICONS[type]}</span>
+          <span>${PIECE_NAMES[type]}</span>
+        `;
+        container.appendChild(card);
+      });
+    }
+  }
+
+  // Start app on DOMContentLoaded
+  window.addEventListener('DOMContentLoaded', () => {
+    window.app = new ChronoCoreApp();
+  });
+
+})();
+
+</script>
+</body>
+</html>
